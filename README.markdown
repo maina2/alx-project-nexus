@@ -52,7 +52,7 @@ This repository contains the ProDev Backend Engineering Program's overview and r
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/prodev-backend-program.git
+   git clone https://github.com/maina2/alx-project-nexus.git
    ```
 2. **Create a Branch**:
    ```bash
