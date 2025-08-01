@@ -12,10 +12,21 @@ class PollSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, read_only=True)
     creator = serializers.StringRelatedField()
     category = serializers.ChoiceField(choices=Poll.CATEGORY_CHOICES, read_only=True)
+    user_vote = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Poll
-        fields = ('id', 'question', 'creator', 'category', 'created_at', 'expiry_date', 'options')
+        fields = ('id', 'question', 'creator', 'category', 'created_at', 'expiry_date', 'options', 'user_vote')
+
+    def get_user_vote(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            try:
+                vote = obj.votes.get(user=user)
+                return OptionSerializer(vote.option).data
+            except Vote.DoesNotExist:
+                return None
+        return None
 
 class PollCreateSerializer(serializers.ModelSerializer):
     options = serializers.ListField(child=serializers.CharField(), write_only=True)
@@ -41,6 +52,7 @@ class VoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vote
         fields = ('option',)
+        ref_name = 'PollsVoteSerializer'  # Unique ref_name for polls app
 
     def validate_option(self, value):
         if value.poll != self.context['poll']:

@@ -83,6 +83,35 @@ SIMPLE_JWT = {
     'BLACKLIST_TOKEN_CHECKS': ['access', 'refresh'],
 }
 
+# pollpro_backend/settings.py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'polls',
+    'pollpro_admin',
+    'drf_yasg',  # Add drf-yasg
+]
+
+# Swagger settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Enter token as "Bearer <token>"'
+        }
+    },
+    'USE_SESSION_AUTH': False,
+    'DEFAULT_INFO': 'pollpro_backend.urls.swagger_info',
+}
+
 
 ROOT_URLCONF = 'pollpro_backend.urls'
 
