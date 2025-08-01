@@ -1,9 +1,10 @@
+# pollpro_backend/polls/views.py
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Poll, Vote
 from .serializers import PollSerializer, PollCreateSerializer, VoteSerializer, PollResultSerializer
-from .permissions import IsAdmin, IsAuthenticated
+from .permissions import IsAdmin, IsAuthenticated, IsAdminOrCreator
 
 class CategoryChoicesView(generics.GenericAPIView):
     permission_classes = []  # Allow anyone to access
@@ -32,7 +33,7 @@ class PollListView(generics.ListAPIView):
 class PollDetailView(generics.RetrieveDestroyAPIView):
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
-    permission_classes = [IsAdmin]  # Only admins can delete
+    permission_classes = [IsAdminOrCreator]  # Admins or creators can delete
 
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -53,6 +54,23 @@ class VoteView(generics.CreateAPIView):
             return Response({"detail": "Vote recorded"}, status=status.HTTP_201_CREATED)
         except Poll.DoesNotExist:
             return Response({"error": "Poll not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class VoteRetractView(generics.DestroyAPIView):
+    queryset = Vote.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            poll = Poll.objects.get(pk=self.kwargs['pk'])
+            if not poll.is_active():
+                return Response({"error": "Cannot retract vote on an expired poll"}, status=status.HTTP_400_BAD_REQUEST)
+            vote = Vote.objects.get(poll=poll, user=request.user)
+            vote.delete()
+            return Response({"detail": "Vote retracted"}, status=status.HTTP_200_OK)
+        except Poll.DoesNotExist:
+            return Response({"error": "Poll not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Vote.DoesNotExist:
+            return Response({"error": "No vote found to retract"}, status=status.HTTP_400_BAD_REQUEST)
 
 class PollResultView(generics.RetrieveAPIView):
     queryset = Poll.objects.all()
