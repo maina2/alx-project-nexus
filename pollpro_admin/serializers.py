@@ -30,3 +30,4 @@ class VoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vote
         fields = ('id', 'user', 'poll', 'option', 'created_at')
+        ref_name = 'AdminVoteSerializer'  # Unique ref_name for admin app
