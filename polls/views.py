@@ -45,16 +45,53 @@ class PollCreateView(generics.CreateAPIView):
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 class PollListView(generics.ListAPIView):
-    queryset = Poll.objects.all()
     serializer_class = PollSerializer
     permission_classes = []  # Allow anyone to list polls
 
     @swagger_auto_schema(
-        operation_description="List all polls",
+        operation_description="List all polls with optional category filter",
+        manual_parameters=[
+            openapi.Parameter(
+                name='category',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                enum=[choice[0] for choice in Poll.CATEGORY_CHOICES],
+                description='Filter polls by category (e.g., TECH, ENT, SPRT, POL, LIFE, EDU). Leave empty for all categories.'
+            )
+        ],
         responses={200: PollSerializer(many=True)}
     )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+    def get_queryset(self):
+        """
+        This view returns a list of all polls with optional category filtering.
+        """
+        queryset = Poll.objects.all().order_by('-created_at')  # Order by newest first
+        category = self.request.query_params.get('category', None)
+        
+        if category:
+            # Validate that the category is one of the allowed choices
+            valid_categories = [choice[0] for choice in Poll.CATEGORY_CHOICES]
+            if category in valid_categories:
+                queryset = queryset.filter(category=category)
+            else:
+                # If invalid category provided, return empty queryset
+                return Poll.objects.none()
+        
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        Override list method to add additional context or debugging
+        """
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class PollDetailView(generics.RetrieveDestroyAPIView):
     queryset = Poll.objects.all()
@@ -95,10 +132,27 @@ class VoteView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         try:
             poll = Poll.objects.get(pk=self.kwargs['pk'])
+            
+            # Check if poll is active
+            if not poll.is_active():
+                return Response(
+                    {"error": "Cannot vote on an expired poll"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if user has already voted
+            existing_vote = Vote.objects.filter(poll=poll, user=request.user).first()
+            if existing_vote:
+                return Response(
+                    {"error": "You have already voted on this poll"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             serializer = self.get_serializer(data=request.data, context={'poll': poll, 'request': request})
             serializer.is_valid(raise_exception=True)
             Vote.objects.create(poll=poll, user=request.user, **serializer.validated_data)
             return Response({"detail": "Vote recorded"}, status=status.HTTP_201_CREATED)
+            
         except Poll.DoesNotExist:
             return Response({"error": "Poll not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -134,7 +188,7 @@ class VoteRetractView(generics.DestroyAPIView):
 class PollResultView(generics.RetrieveAPIView):
     queryset = Poll.objects.all()
     serializer_class = PollResultSerializer
-    permission_classes = []  # Allow anyone to view results
+    permission_classes = []  
 
     @swagger_auto_schema(
         operation_description="View poll results",
@@ -156,4 +210,4 @@ class UserPollHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return Poll.objects.filter(votes__user=user).distinct()
+        return Poll.objects.filter(votes__user=user).distinct().order_by('-created_at')

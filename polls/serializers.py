@@ -2,11 +2,18 @@
 from rest_framework import serializers
 from .models import Poll, Option, Vote
 from django.utils import timezone
-
 class OptionSerializer(serializers.ModelSerializer):
+    votes = serializers.IntegerField(source='votes.count', read_only=True)
+    percentage = serializers.SerializerMethodField()
+
     class Meta:
         model = Option
-        fields = ('id', 'text')
+        fields = ('id', 'text', 'votes', 'percentage')
+
+    def get_percentage(self, obj):
+        total_votes = obj.poll.votes.count()
+        option_votes = obj.votes.count()
+        return (option_votes / total_votes * 100) if total_votes > 0 else 0
 
 class PollSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, read_only=True)
