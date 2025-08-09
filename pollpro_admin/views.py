@@ -1,6 +1,6 @@
 # pollpro_backend/pollpro_admin/views.py
 from rest_framework import generics
-from django.contrib.auth.models import User
+from users.models import CustomUser  # Updated from django.contrib.auth.models
 from polls.models import Poll, Vote
 from .serializers import UserSerializer, AdminPollSerializer, VoteSerializer
 from polls.permissions import IsAdmin
@@ -8,7 +8,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 class UserListCreateView(generics.ListCreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()  
     serializer_class = UserSerializer
     permission_classes = [IsAdmin]
 
@@ -27,7 +27,7 @@ class UserListCreateView(generics.ListCreateAPIView):
         return super().post(request, *args, **kwargs)
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()  # Updated to CustomUser
     serializer_class = UserSerializer
     permission_classes = [IsAdmin]
 

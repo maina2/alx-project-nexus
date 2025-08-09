@@ -1,19 +1,19 @@
 # pollpro_backend/pollpro_admin/serializers.py
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from users.models import CustomUser  # Updated from django.contrib.auth.models
 from polls.models import Poll, Vote, Option
 from polls.serializers import OptionSerializer, PollSerializer
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ('id', 'username', 'email', 'is_staff', 'is_active', 'date_joined')
+        model = CustomUser  # Updated to CustomUser
+        fields = ('id', 'username', 'email', 'roles', 'is_active', 'date_joined')  # Replaced is_staff with roles
 
     def update(self, instance, validated_data):
         # Update user fields, ensuring password is not included
         instance.username = validated_data.get('username', instance.username)
         instance.email = validated_data.get('email', instance.email)
-        instance.is_staff = validated_data.get('is_staff', instance.is_staff)
+        instance.roles = validated_data.get('roles', instance.roles)  # Updated to roles
         instance.is_active = validated_data.get('is_active', instance.is_active)
         instance.save()
         return instance

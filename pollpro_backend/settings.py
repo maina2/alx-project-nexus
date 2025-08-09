@@ -100,6 +100,7 @@ SWAGGER_SETTINGS = {
     'DEFAULT_INFO': 'pollpro_backend.urls.swagger_info',
 }
 
+AUTH_USER_MODEL = 'users.CustomUser'
 
 ROOT_URLCONF = 'pollpro_backend.urls'
 
