@@ -1,4 +1,3 @@
-# pollpro_backend/polls/permissions.py
 from rest_framework.permissions import BasePermission
 
 class IsAuthenticated(BasePermission):
@@ -16,3 +15,8 @@ class IsAdminOrCreator(BasePermission):
     def has_object_permission(self, request, view, obj):
         # Allow deletion if user is admin or the poll's creator
         return request.user.roles == 'admin' or obj.creator == request.user
+
+class IsPollCreator(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        # Allow action only if the user is the poll's creator
+        return request.user and request.user.is_authenticated and obj.creator == request.user

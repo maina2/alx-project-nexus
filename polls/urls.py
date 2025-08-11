@@ -1,14 +1,15 @@
-# pollpro_backend/polls/urls.py
 from django.urls import path
 from .views import (
-    PollCreateView, 
-    PollListView, 
-    PollDetailView, 
-    VoteView, 
-    PollResultView, 
-    CategoryChoicesView, 
+    PollCreateView,
+    PollListView,
+    PollDetailView,
+    VoteView,
+    PollResultView,
+    CategoryChoicesView,
     VoteRetractView,
-    UserPollHistoryView
+    UserPollHistoryView,
+    UserPollListCreateView,
+    UserPollRetrieveUpdateDestroyView
 )
 
 urlpatterns = [
@@ -20,4 +21,6 @@ urlpatterns = [
     path('<int:pk>/vote/', VoteView.as_view(), name='poll_vote'),
     path('<int:pk>/retract/', VoteRetractView.as_view(), name='vote_retract'),
     path('<int:pk>/results/', PollResultView.as_view(), name='poll_results'),
+    path('user-polls/', UserPollListCreateView.as_view(), name='user_poll_list_create'),
+    path('user-polls/<int:pk>/', UserPollRetrieveUpdateDestroyView.as_view(), name='user_poll_retrieve_update_destroy'),
 ]

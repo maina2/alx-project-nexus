@@ -1,4 +1,3 @@
-# pollpro_backend/users/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.validators import UniqueValidator
@@ -23,7 +22,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password2')  # Remove password2 as it's not a model field
+        validated_data.pop('password2')
         user = CustomUser.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -36,3 +35,4 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ('id', 'username', 'email', 'roles')
+        ref_name = 'UserAppUserSerializer' 

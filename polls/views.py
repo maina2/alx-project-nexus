@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.exceptions import NotFound
 from .models import Poll, Vote
-from .serializers import PollSerializer, PollCreateSerializer, VoteSerializer, PollResultSerializer
-from .permissions import IsAdmin, IsAuthenticated, IsAdminOrCreator
+from .serializers import PollSerializer, PollCreateSerializer, VoteSerializer, PollResultSerializer,PollUpdateSerializer
+from .permissions import IsAdmin, IsAuthenticated, IsAdminOrCreator, IsPollCreator
 
 class CategoryChoicesView(generics.GenericAPIView):
     permission_classes = []  # Allow anyone to access
@@ -43,6 +44,68 @@ class PollCreateView(generics.CreateAPIView):
         poll = serializer.save()
         response_serializer = PollSerializer(poll, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+    
+class UserPollListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PollSerializer
+
+    def get_queryset(self):
+        # Filter polls by the authenticated user
+        return Poll.objects.filter(creator=self.request.user).order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        """
+        List all polls created by the authenticated user.
+        """
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({"detail": "No polls found for this user"}, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def perform_create(self, serializer):
+        """
+        Set the creator to the authenticated user during poll creation.
+        """
+        serializer.save(creator=self.request.user)
+
+class UserPollRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsPollCreator]
+    serializer_class = PollSerializer
+    queryset = Poll.objects.all()
+
+    def get_object(self):
+        # Retrieve a specific poll and check creator permission
+        pk = self.kwargs.get('pk')
+        try:
+            poll = Poll.objects.get(pk=pk)
+            self.check_object_permissions(self.request, poll)
+            return poll
+        except Poll.DoesNotExist:
+            raise NotFound(detail="Poll not found")
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update a specific poll created by the user.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = PollUpdateSerializer(instance, data=request.data, partial=partial, context={'request': request})
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a specific poll created by the user.
+        """
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class PollListView(generics.ListAPIView):
     serializer_class = PollSerializer

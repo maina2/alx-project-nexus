@@ -7,8 +7,20 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserRegisterSerializer, UserSerializer
 from polls.permissions import IsAdmin
 from .models import CustomUser
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Register a new user.",
+        request_body=UserRegisterSerializer,
+        responses={
+            201: openapi.Response("User registered successfully", UserSerializer),
+            400: "Invalid input"
+        }
+    )
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -17,12 +29,28 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserDetailView(APIView):
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_description="Retrieve details of the authenticated user.",
+        responses={
+            200: openapi.Response("User details retrieved successfully", UserSerializer),
+            401: "Unauthorized"
+        }
+    )
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_description="Update details of the authenticated user.",
+        request_body=UserSerializer,
+        responses={
+            200: openapi.Response("User details updated successfully", UserSerializer),
+            400: "Invalid input",
+            401: "Unauthorized"
+        }
+    )
     def patch(self, request):
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -33,6 +61,20 @@ class UserDetailView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_description="Logout by blacklisting the refresh token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh'],
+            properties={
+                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description="The refresh token to blacklist.")
+            }
+        ),
+        responses={
+            205: "Successfully logged out.",
+            400: "Refresh token is missing or invalid."
+        }
+    )
     def post(self, request):
         try:
             refresh_token = request.data.get("refresh")
@@ -47,6 +89,13 @@ class LogoutView(APIView):
 class AdminUserManagementView(APIView):
     permission_classes = [IsAdmin]
 
+    @swagger_auto_schema(
+        operation_description="List all users (admin only).",
+        responses={
+            200: openapi.Response("List of all users", UserSerializer(many=True)),
+            403: "Permission denied"
+        }
+    )
     def get(self, request):
         users = CustomUser.objects.all()
         serializer = UserSerializer(users, many=True)

@@ -86,3 +86,22 @@ class PollResultSerializer(serializers.ModelSerializer):
                 'percentage': (option.votes.count() / total_votes * 100) if total_votes > 0 else 0
             } for option in options
         ]
+    
+class PollUpdateSerializer(serializers.ModelSerializer):
+    options = serializers.ListField(child=serializers.CharField(), required=False)
+
+    class Meta:
+        model = Poll
+        fields = ('question', 'expiry_date', 'options')
+        extra_kwargs = {'question': {'required': False}, 'expiry_date': {'required': False}}
+
+    def update(self, instance, validated_data):
+        options_data = validated_data.pop('options', None)
+        instance.question = validated_data.get('question', instance.question)
+        instance.expiry_date = validated_data.get('expiry_date', instance.expiry_date)
+        instance.save()
+        if options_data:
+            instance.options.all().delete()
+            for option_text in options_data:
+                Option.objects.create(poll=instance, text=option_text)
+        return instance

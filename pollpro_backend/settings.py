@@ -87,6 +87,8 @@ SIMPLE_JWT = {
 
 
 # Swagger settings
+# Updated SWAGGER_SETTINGS for your settings.py file
+
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
@@ -98,8 +100,20 @@ SWAGGER_SETTINGS = {
     },
     'USE_SESSION_AUTH': False,
     'DEFAULT_INFO': 'pollpro_backend.urls.swagger_info',
+    # Optional enhancements you can add:
+    'JSON_EDITOR': True,
+    'SUPPORTED_SUBMIT_METHODS': [
+        'get',
+        'post',
+        'put',
+        'delete',
+        'patch'
+    ],
+    'OPERATIONS_SORTER': 'alpha',
+    'TAGS_SORTER': 'alpha',
+    'DOC_EXPANSION': 'none',
+    'DEEP_LINKING': True,
 }
-
 AUTH_USER_MODEL = 'users.CustomUser'
 
 ROOT_URLCONF = 'pollpro_backend.urls'
